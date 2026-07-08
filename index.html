@@ -26,17 +26,59 @@
 
         header {
             text-align: center;
-            padding: 20px 0;
+            padding: 28px 0;
             border-bottom: 2px solid #c0392b;
             margin-bottom: 24px;
+            background: linear-gradient(180deg, #1a0a0a 0%, #111 100%);
+            border-radius: 16px 16px 0 0;
+            margin: -16px -16px 24px -16px;
+            padding: 32px 16px 24px 16px;
+        }
+
+        header .logo-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        header .logo-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(192,57,43,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+            animation: pulse 3s ease-in-out infinite;
         }
 
         header .logo {
-            width: 80px;
-            height: 80px;
+            position: relative;
+            width: 140px;
+            height: auto;
             object-fit: contain;
-            border-radius: 12px;
-            margin-bottom: 12px;
+            filter: drop-shadow(0 0 12px rgba(192,57,43,0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.5)) brightness(1.1);
+            animation: logoEntry 0.8s ease-out;
+            z-index: 1;
+        }
+
+        @keyframes logoEntry {
+            from {
+                opacity: 0;
+                transform: scale(0.7) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
         }
 
         header h1 {
@@ -265,7 +307,9 @@
 <body>
     <div class="container">
         <header>
-            <img src="logo.jpeg" alt="YALAK" class="logo">
+            <div class="logo-container">
+                <img src="logo.jpeg" alt="YALAK" class="logo">
+            </div>
             <h1>בדיקת ציוד יומית</h1>
             <div class="date-display" id="currentDate"></div>
         </header>
