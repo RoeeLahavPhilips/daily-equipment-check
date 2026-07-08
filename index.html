@@ -193,6 +193,42 @@
             flex-grow: 1;
         }
 
+        .qty-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #222;
+            border-radius: 8px;
+            padding: 4px 8px;
+            border: 1px solid #444;
+        }
+
+        .qty-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: #c0392b;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qty-btn:active {
+            background: #a93226;
+        }
+
+        .qty-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+        }
+
         .status-bar {
             text-align: center;
             padding: 12px;
@@ -345,6 +381,11 @@
             <li data-item="רימון רסס" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
                 <span class="item-name">רימון רסס</span>
+                <div class="qty-selector" onclick="event.stopPropagation()">
+                    <button class="qty-btn" onclick="changeQty(this,-1)">-</button>
+                    <span class="qty-value" id="grenadeQty">1</span>
+                    <button class="qty-btn" onclick="changeQty(this,1)">+</button>
+                </div>
             </li>
             <li data-item="קשר 710" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
@@ -386,6 +427,15 @@
         }
 
         document.getElementById('currentDate').textContent = formatDate();
+
+        function changeQty(btn, delta) {
+            if (hasSubmittedToday()) return;
+            var qtyEl = document.getElementById('grenadeQty');
+            var val = parseInt(qtyEl.textContent) + delta;
+            if (val < 1) val = 1;
+            if (val > 4) val = 4;
+            qtyEl.textContent = val;
+        }
 
         function hasSubmittedToday() {
             var submitted = localStorage.getItem('lastSubmitDate');
@@ -444,7 +494,12 @@
             items.forEach(function(li) {
                 var itemName = li.getAttribute('data-item');
                 if (li.classList.contains('checked')) {
-                    checkedItems.push(itemName);
+                    if (itemName === 'רימון רסס') {
+                        var qty = document.getElementById('grenadeQty').textContent;
+                        checkedItems.push(itemName + ' x' + qty);
+                    } else {
+                        checkedItems.push(itemName);
+                    }
                 } else {
                     uncheckedItems.push(itemName);
                 }
