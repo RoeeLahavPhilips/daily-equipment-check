@@ -158,10 +158,16 @@
             border: 1px solid #3a7a3a;
         }
 
-        .status-bar.incomplete {
-            background: #2d1a1a;
-            color: #e74c3c;
-            border: 1px solid #5a2020;
+        .status-bar.neutral {
+            background: #1a1a1a;
+            color: #aaa;
+            border: 1px solid #333;
+        }
+
+        .status-bar.already-submitted {
+            background: #2d2d1a;
+            color: #f0c040;
+            border: 1px solid #5a5a20;
         }
 
         .submit-btn {
@@ -183,7 +189,8 @@
         }
 
         .submit-btn:disabled {
-            background: #555;
+            background: #444;
+            color: #888;
             cursor: not-allowed;
         }
 
@@ -227,20 +234,12 @@
         }
 
         .history-entry .entry-items {
-            color: #aaa;
+            color: #ccc;
         }
 
-        .history-entry .entry-status {
-            margin-top: 4px;
-            font-weight: 600;
-        }
-
-        .entry-status.all-good {
-            color: #6fcf6f;
-        }
-
-        .entry-status.missing {
+        .history-entry .entry-missing {
             color: #e74c3c;
+            margin-top: 4px;
         }
 
         .clear-btn {
@@ -286,7 +285,7 @@
                 <div class="checkbox"></div>
                 <span class="item-name">כוונת השלכה</span>
             </li>
-            <li data-item='אמר"ל' onclick="toggleItem(this)">
+            <li data-item="אמרל" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
                 <span class="item-name">אמר"ל</span>
             </li>
@@ -300,7 +299,7 @@
             </li>
         </ul>
 
-        <div class="status-bar incomplete" id="statusBar">
+        <div class="status-bar neutral" id="statusBar">
             סמן את הפריטים שברשותך
         </div>
 
@@ -314,120 +313,161 @@
     </div>
 
     <script>
+        // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+        var SCRIPT_URL = '';
+
+        function getTodayKey() {
+            var now = new Date();
+            return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+        }
+
         function formatDate() {
-            const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            var now = new Date();
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             return now.toLocaleDateString('he-IL', options);
         }
 
         function formatTime() {
-            const now = new Date();
+            var now = new Date();
             return now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         }
 
         document.getElementById('currentDate').textContent = formatDate();
 
+        function hasSubmittedToday() {
+            var submitted = localStorage.getItem('lastSubmitDate');
+            return submitted === getTodayKey();
+        }
+
+        function checkIfAlreadySubmitted() {
+            if (hasSubmittedToday()) {
+                document.getElementById('statusBar').textContent = 'כבר דיווחת היום';
+                document.getElementById('statusBar').className = 'status-bar already-submitted';
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').textContent = 'הדיווח נשלח היום';
+            }
+        }
+
         function toggleItem(li) {
+            if (hasSubmittedToday()) return;
             li.classList.toggle('checked');
             updateStatus();
         }
 
         function updateStatus() {
-            const items = document.querySelectorAll(".checklist li");
-            const checked = document.querySelectorAll(".checklist li.checked");
-            const statusBar = document.getElementById("statusBar");
+            if (hasSubmittedToday()) return;
+            var items = document.querySelectorAll('.checklist li');
+            var checked = document.querySelectorAll('.checklist li.checked');
+            var statusBar = document.getElementById('statusBar');
 
             if (checked.length === 0) {
-                statusBar.textContent = "סמן את הפריטים שברשותך";
-                statusBar.className = "status-bar incomplete";
+                statusBar.textContent = 'סמן את הפריטים שברשותך';
+                statusBar.className = 'status-bar neutral';
             } else {
-                statusBar.textContent = `נבחרו ${checked.length} מתוך ${items.length} פריטים`;
-                statusBar.className = "status-bar complete";
+                statusBar.textContent = checked.length + ' מתוך ' + items.length + ' פריטים ברשותי';
+                statusBar.className = 'status-bar complete';
             }
         }
 
         function submitCheck() {
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
+            if (hasSubmittedToday()) {
+                alert('כבר שלחת דיווח היום. ניתן לשלוח דיווח אחד ביום בלבד.');
+                return;
+            }
+
+            var firstName = document.getElementById('firstName').value.trim();
+            var lastName = document.getElementById('lastName').value.trim();
 
             if (!firstName || !lastName) {
                 alert('יש להזין שם פרטי ושם משפחה');
                 return;
             }
 
-            const fullName = firstName + ' ' + lastName;
-            const items = document.querySelectorAll('.checklist li');
-            const checkedItems = [];
-            const missingItems = [];
+            var fullName = firstName + ' ' + lastName;
+            var items = document.querySelectorAll('.checklist li');
+            var checkedItems = [];
+            var uncheckedItems = [];
 
-            items.forEach(li => {
-                const itemName = li.getAttribute('data-item');
+            items.forEach(function(li) {
+                var itemName = li.getAttribute('data-item');
                 if (li.classList.contains('checked')) {
                     checkedItems.push(itemName);
                 } else {
-                    missingItems.push(itemName);
+                    uncheckedItems.push(itemName);
                 }
             });
 
-            const entry = {
+            var entry = {
                 name: fullName,
-                date: formatDate(),
+                date: getTodayKey(),
                 time: formatTime(),
-                timestamp: Date.now(),
                 checkedItems: checkedItems,
-                missingItems: missingItems,
-                allComplete: missingItems.length === 0
+                uncheckedItems: uncheckedItems
             };
 
-            let history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
+            // Send to Google Sheets
+            if (SCRIPT_URL) {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+            }
+
+            // Save locally
+            entry.dateDisplay = formatDate();
+            var history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
             history.unshift(entry);
             if (history.length > 50) history = history.slice(0, 50);
             localStorage.setItem('equipmentHistory', JSON.stringify(history));
+            localStorage.setItem('lastSubmitDate', getTodayKey());
 
-            const statusText = checkedItems.length === 0
-                ? `הצהרה נשלחה - ${fullName} ראה את כל האמצעים`
-                : `הצהרה נשלחה - חסרים: ${missingItems.join(', ')}`;
+            var msg = 'הצהרה נשלחה עבור ' + fullName + '\n';
+            msg += 'ראיתי: ' + (checkedItems.length > 0 ? checkedItems.join(', ') : 'אף פריט');
+            if (uncheckedItems.length > 0) {
+                msg += '\nלא ברשותי: ' + uncheckedItems.join(', ');
+            }
+            alert(msg);
 
-            alert(statusText);
-
-            items.forEach(li => li.classList.remove('checked'));
-            document.getElementById('firstName').value = '';
-            document.getElementById('lastName').value = '';
-            updateStatus();
+            checkIfAlreadySubmitted();
             loadHistory();
         }
 
         function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
-            const container = document.getElementById('historyList');
+            var history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
+            var container = document.getElementById('historyList');
 
             if (history.length === 0) {
                 container.innerHTML = '<p style="color:#666; font-size:0.9rem;">אין דיווחים עדיין</p>';
                 return;
             }
 
-            container.innerHTML = history.slice(0, 10).map(entry => `
-                <div class="history-entry">
-                    <div class="entry-header">
-                        <span class="entry-name">${entry.name}</span>
-                        <span class="entry-time">${entry.time} | ${entry.date}</span>
-                    </div>
-                    <div class="entry-items">ראה: ${entry.checkedItems.join(', ') || 'אף פריט'}</div>
-                    ${entry.missingItems.length > 0
-                        ? `<div class="entry-status missing">לא ראה: ${entry.missingItems.join(', ')}</div>`
-                        : `<div class="entry-status all-good">הכל תקין</div>`
-                    }
-                </div>
-            `).join('');
+            var html = '';
+            history.slice(0, 10).forEach(function(entry) {
+                html += '<div class="history-entry">';
+                html += '<div class="entry-header">';
+                html += '<span class="entry-name">' + entry.name + '</span>';
+                html += '<span class="entry-time">' + entry.time + ' | ' + entry.date + '</span>';
+                html += '</div>';
+                html += '<div class="entry-items">ראה: ' + (entry.checkedItems.length > 0 ? entry.checkedItems.join(', ') : 'אף פריט') + '</div>';
+                if (entry.uncheckedItems && entry.uncheckedItems.length > 0) {
+                    html += '<div class="entry-missing">לא ברשותו: ' + entry.uncheckedItems.join(', ') + '</div>';
+                }
+                html += '</div>';
+            });
+            container.innerHTML = html;
         }
 
         function clearHistory() {
             if (confirm('למחוק את כל ההיסטוריה?')) {
                 localStorage.clear();
                 loadHistory();
+                updateStatus();
             }
         }
 
+        checkIfAlreadySubmitted();
         loadHistory();
     </script>
 </body>
