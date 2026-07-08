@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בדיקת ציוד יומית - מילואים</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #111;
+            color: #fff;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #c0392b;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .date-display {
+            font-size: 1.1rem;
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .declaration {
+            background: #1a1a1a;
+            border: 1px solid #c0392b;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1rem;
+            color: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .soldier-section {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .soldier-section .field {
+            flex: 1;
+        }
+
+        .soldier-section label {
+            display: block;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .soldier-section input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .soldier-section input:focus {
+            border-color: #e74c3c;
+        }
+
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist li {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            border: 1px solid #333;
+            user-select: none;
+        }
+
+        .checklist li:active {
+            transform: scale(0.98);
+        }
+
+        .checklist li.checked {
+            background: #2d1a1a;
+            border-color: #c0392b;
+        }
+
+        .checklist li .checkbox {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .checklist li.checked .checkbox {
+            background: #c0392b;
+            border-color: #c0392b;
+        }
+
+        .checklist li.checked .checkbox::after {
+            content: '\2713';
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .checklist li .item-name {
+            font-size: 1.05rem;
+            flex-grow: 1;
+        }
+
+        .status-bar {
+            text-align: center;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .status-bar.complete {
+            background: #1a2e1a;
+            color: #6fcf6f;
+            border: 1px solid #3a7a3a;
+        }
+
+        .status-bar.incomplete {
+            background: #2d1a1a;
+            color: #e74c3c;
+            border: 1px solid #5a2020;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            background: #c0392b;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.97);
+            background: #a93226;
+        }
+
+        .submit-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .history-section {
+            margin-top: 32px;
+            border-top: 2px solid #c0392b;
+            padding-top: 20px;
+        }
+
+        .history-section h2 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: #aaa;
+        }
+
+        .history-entry {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border: 1px solid #333;
+            font-size: 0.9rem;
+        }
+
+        .history-entry .entry-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .history-entry .entry-name {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .history-entry .entry-time {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .history-entry .entry-items {
+            color: #aaa;
+        }
+
+        .history-entry .entry-status {
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .entry-status.all-good {
+            color: #6fcf6f;
+        }
+
+        .entry-status.missing {
+            color: #e74c3c;
+        }
+
+        .clear-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>בדיקת ציוד יומית</h1>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+
+        <div class="declaration">
+            הצהרה: ראיתי היום את האמצעים הבאים
+        </div>
+
+        <div class="soldier-section">
+            <div class="field">
+                <label>שם פרטי</label>
+                <input type="text" id="firstName" placeholder="שם פרטי">
+            </div>
+            <div class="field">
+                <label>שם משפחה</label>
+                <input type="text" id="lastName" placeholder="שם משפחה">
+            </div>
+        </div>
+
+        <ul class="checklist" id="checklist">
+            <li data-item="נשק אישי" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">נשק אישי</span>
+            </li>
+            <li data-item="כוונת השלכה" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">כוונת השלכה</span>
+            </li>
+            <li data-item='אמר"ל' onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">אמר"ל</span>
+            </li>
+            <li data-item="רימון רסס" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">רימון רסס</span>
+            </li>
+            <li data-item="קשר 710" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">קשר 710</span>
+            </li>
+        </ul>
+
+        <div class="status-bar incomplete" id="statusBar">
+            סמן את הפריטים שברשותך
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitCheck()">שלח הצהרה</button>
+
+        <div class="history-section">
+            <h2>דיווחים אחרונים</h2>
+            <div id="historyList"></div>
+            <button class="clear-btn" onclick="clearHistory()">נקה היסטוריה</button>
+        </div>
+    </div>
+
+    <script>
+        function formatDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return now.toLocaleDateString('he-IL', options);
+        }
+
+        function formatTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        document.getElementById('currentDate').textContent = formatDate();
+
+        function toggleItem(li) {
+            li.classList.toggle('checked');
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const items = document.querySelectorAll('.checklist li');
+            const checked = document.querySelectorAll('.checklist li.checked');
+            const statusBar = document.getElementById('statusBar');
+
+            if (checked.length === items.length) {
+                statusBar.textContent = 'כל הציוד נראה - הכל תקין';
+                statusBar.className = 'status-bar complete';
+            } else if (checked.length === 0) {
+                statusBar.textContent = 'סמן את הפריטים שברשותך';
+                statusBar.className = 'status-bar incomplete';
+            } else {
+                const missing = items.length - checked.length;
+                statusBar.textContent = `חסרים ${missing} פריטים`;
+                statusBar.className = 'status-bar incomplete';
+            }
+        }
+
+        function submitCheck() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+
+            if (!firstName || !lastName) {
+                alert('יש להזין שם פרטי ושם משפחה');
+                return;
+            }
+
+            const fullName = firstName + ' ' + lastName;
+            const items = document.querySelectorAll('.checklist li');
+            const checkedItems = [];
+            const missingItems = [];
+
+            items.forEach(li => {
+                const itemName = li.getAttribute('data-item');
+                if (li.classList.contains('checked')) {
+                    checkedItems.push(itemName);
+                } else {
+                    missingItems.push(itemName);
+                }
+            });
+
+            const entry = {
+                name: fullName,
+                date: formatDate(),
+                time: formatTime(),
+                timestamp: Date.now(),
+                checkedItems: checkedItems,
+                missingItems: missingItems,
+                allComplete: missingItems.length === 0
+            };
+
+            let history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
+            history.unshift(entry);
+            if (history.length > 50) history = history.slice(0, 50);
+            localStorage.setItem('equipmentHistory', JSON.stringify(history));
+
+            const statusText = entry.allComplete
+                ? `הצהרה נשלחה - ${fullName} ראה את כל האמצעים`
+                : `הצהרה נשלחה - חסרים: ${missingItems.join(', ')}`;
+
+            alert(statusText);
+
+            items.forEach(li => li.classList.remove('checked'));
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            updateStatus();
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('equipmentHistory') || '[]');
+            const container = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color:#666; font-size:0.9rem;">אין דיווחים עדיין</p>';
+                return;
+            }
+
+            container.innerHTML = history.slice(0, 10).map(entry => `
+                <div class="history-entry">
+                    <div class="entry-header">
+                        <span class="entry-name">${entry.name}</span>
+                        <span class="entry-time">${entry.time} | ${entry.date}</span>
+                    </div>
+                    <div class="entry-items">ראה: ${entry.checkedItems.join(', ') || 'אף פריט'}</div>
+                    ${entry.missingItems.length > 0
+                        ? `<div class="entry-status missing">לא ראה: ${entry.missingItems.join(', ')}</div>`
+                        : `<div class="entry-status all-good">הכל תקין</div>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (confirm('למחוק את כל ההיסטוריה?')) {
+                localStorage.clear();
+                loadHistory();
+            }
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>
