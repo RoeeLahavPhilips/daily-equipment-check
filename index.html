@@ -381,10 +381,10 @@
             <li data-item="רימון רסס" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
                 <span class="item-name">רימון רסס</span>
-                <div class="qty-selector" onclick="event.stopPropagation()">
-                    <button class="qty-btn" onclick="changeQty(this,-1)">-</button>
+                <div class="qty-selector" onclick="event.stopPropagation()" ontouchend="event.stopPropagation()">
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty(-1)" ontouchend="event.stopPropagation()">-</button>
                     <span class="qty-value" id="grenadeQty">1</span>
-                    <button class="qty-btn" onclick="changeQty(this,1)">+</button>
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty(1)" ontouchend="event.stopPropagation()">+</button>
                 </div>
             </li>
             <li data-item="קשר 710" onclick="toggleItem(this)">
@@ -428,7 +428,7 @@
 
         document.getElementById('currentDate').textContent = formatDate();
 
-        function changeQty(btn, delta) {
+        function changeQty(delta) {
             if (hasSubmittedToday()) return;
             var qtyEl = document.getElementById('grenadeQty');
             var val = parseInt(qtyEl.textContent) + delta;
