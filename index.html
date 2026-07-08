@@ -333,20 +333,16 @@
         }
 
         function updateStatus() {
-            const items = document.querySelectorAll('.checklist li');
-            const checked = document.querySelectorAll('.checklist li.checked');
-            const statusBar = document.getElementById('statusBar');
+            const items = document.querySelectorAll(".checklist li");
+            const checked = document.querySelectorAll(".checklist li.checked");
+            const statusBar = document.getElementById("statusBar");
 
-            if (checked.length === items.length) {
-                statusBar.textContent = 'כל הציוד נראה - הכל תקין';
-                statusBar.className = 'status-bar complete';
-            } else if (checked.length === 0) {
-                statusBar.textContent = 'סמן את הפריטים שברשותך';
-                statusBar.className = 'status-bar incomplete';
+            if (checked.length === 0) {
+                statusBar.textContent = "סמן את הפריטים שברשותך";
+                statusBar.className = "status-bar incomplete";
             } else {
-                const missing = items.length - checked.length;
-                statusBar.textContent = `חסרים ${missing} פריטים`;
-                statusBar.className = 'status-bar incomplete';
+                statusBar.textContent = `נבחרו ${checked.length} מתוך ${items.length} פריטים`;
+                statusBar.className = "status-bar complete";
             }
         }
 
@@ -388,7 +384,7 @@
             if (history.length > 50) history = history.slice(0, 50);
             localStorage.setItem('equipmentHistory', JSON.stringify(history));
 
-            const statusText = entry.allComplete
+            const statusText = checkedItems.length === 0
                 ? `הצהרה נשלחה - ${fullName} ראה את כל האמצעים`
                 : `הצהרה נשלחה - חסרים: ${missingItems.join(', ')}`;
 
