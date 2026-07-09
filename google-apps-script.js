@@ -48,15 +48,13 @@ function sendTestEmail() {
     String(today.getDate()).padStart(2,'0');
 
   var testEntries = [
-    { name: 'ישראל ישראלי', time: '08:30', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x2'], uncheckedItems: ['קשר 710'] },
-    { name: 'דוד כהן', time: '09:15', checkedItems: ['נשק אישי', 'אמרל', 'קשר 710'], uncheckedItems: ['כוונת השלכה', 'רימון רסס'] },
-    { name: 'משה לוי', time: '10:00', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x4', 'קשר 710'], uncheckedItems: [] }
+    { name: 'רועי להב', time: '11:40', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x2', 'קשר 710'], uncheckedItems: [] }
   ];
 
   var html = buildEmailHtml(todayStr, testEntries);
   MailApp.sendEmail({
     to: EMAIL,
-    subject: '[בדיקה] דו"ח ציוד יומי - ' + todayStr + ' (3 לוחמים)',
+    subject: '[בדיקה] דו"ח ציוד יומי - ' + todayStr + ' (1 לוחמים)',
     htmlBody: html
   });
 }
