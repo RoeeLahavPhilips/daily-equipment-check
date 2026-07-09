@@ -1,84 +1,110 @@
+// ==== DAILY EQUIPMENT CHECK - EMAIL ONLY (NO SHEETS) ====
+// Deploy as Web App: Execute as Me, Anyone can access
+// After deploy: run createDailyTrigger() once, then run sendTestEmail() to test
+
 var EMAIL = 'roee.lahav@philips.com';
-var SHEET_NAME = 'דיווחים';
 
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['תאריך', 'שעה', 'שם', 'פריטים ברשותו', 'פריטים חסרים']);
-  }
-
-  sheet.appendRow([
-    data.date,
-    data.time,
-    data.name,
-    data.checkedItems.join(', '),
-    data.uncheckedItems.join(', ')
-  ]);
-
+  var today = data.date;
+  var stored = PropertiesService.getScriptProperties().getProperty(today);
+  var entries = stored ? JSON.parse(stored) : [];
+  entries.push({
+    name: data.name,
+    time: data.time,
+    checkedItems: data.checkedItems,
+    uncheckedItems: data.uncheckedItems
+  });
+  PropertiesService.getScriptProperties().setProperty(today, JSON.stringify(entries));
   return ContentService.createTextOutput(JSON.stringify({status: 'ok'}))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
 function sendDailyReport() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) return;
+  var now = new Date();
+  var today = now.getFullYear() + '-' +
+    String(now.getMonth()+1).padStart(2,'0') + '-' +
+    String(now.getDate()).padStart(2,'0');
 
+  var stored = PropertiesService.getScriptProperties().getProperty(today);
+  var entries = stored ? JSON.parse(stored) : [];
+
+  var html = buildEmailHtml(today, entries);
+  var subject = entries.length > 0
+    ? 'דו"ח ציוד יומי - ' + today + ' (' + entries.length + ' לוחמים)'
+    : 'דו"ח ציוד יומי - ' + today + ' - אין דיווחים';
+
+  MailApp.sendEmail({
+    to: EMAIL,
+    subject: subject,
+    htmlBody: html
+  });
+}
+
+function sendTestEmail() {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' +
     String(today.getMonth()+1).padStart(2,'0') + '-' +
     String(today.getDate()).padStart(2,'0');
 
-  var data = sheet.getDataRange().getValues();
-  var todayRows = [];
+  var testEntries = [
+    { name: 'ישראל ישראלי', time: '08:30', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x2'], uncheckedItems: ['קשר 710'] },
+    { name: 'דוד כהן', time: '09:15', checkedItems: ['נשק אישי', 'אמרל', 'קשר 710'], uncheckedItems: ['כוונת השלכה', 'רימון רסס'] },
+    { name: 'משה לוי', time: '10:00', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x4', 'קשר 710'], uncheckedItems: [] }
+  ];
 
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === todayStr) {
-      todayRows.push(data[i]);
-    }
-  }
-
-  if (todayRows.length === 0) {
-    MailApp.sendEmail({
-      to: EMAIL,
-      subject: 'דו"ח ציוד יומי - ' + todayStr + ' - אין דיווחים',
-      htmlBody: '<div dir="rtl" style="font-family:Arial,sans-serif;">' +
-        '<h2>דו"ח ציוד יומי - ' + todayStr + '</h2>' +
-        '<p style="color:red;font-weight:bold;">לא התקבלו דיווחים היום.</p>' +
-        '</div>'
-    });
-    return;
-  }
-
-  var html = '<div dir="rtl" style="font-family:Arial,sans-serif;">';
-  html += '<h2>דו"ח ציוד יומי - ' + todayStr + '</h2>';
-  html += '<p>סה"כ דיווחים: <strong>' + todayRows.length + '</strong></p>';
-  html += '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;text-align:right;">';
-  html += '<tr style="background:#c0392b;color:white;">';
-  html += '<th>שעה</th><th>שם</th><th>ברשותו</th><th>חסר</th>';
-  html += '</tr>';
-
-  for (var j = 0; j < todayRows.length; j++) {
-    var row = todayRows[j];
-    var bgColor = j % 2 === 0 ? '#f9f9f9' : '#ffffff';
-    html += '<tr style="background:' + bgColor + ';">';
-    html += '<td>' + row[1] + '</td>';
-    html += '<td><strong>' + row[2] + '</strong></td>';
-    html += '<td>' + row[3] + '</td>';
-    html += '<td style="color:red;">' + (row[4] || '-') + '</td>';
-    html += '</tr>';
-  }
-
-  html += '</table></div>';
-
+  var html = buildEmailHtml(todayStr, testEntries);
   MailApp.sendEmail({
     to: EMAIL,
-    subject: 'דו"ח ציוד יומי - ' + todayStr + ' (' + todayRows.length + ' דיווחים)',
+    subject: '[בדיקה] דו"ח ציוד יומי - ' + todayStr + ' (3 לוחמים)',
     htmlBody: html
   });
+}
+
+function buildEmailHtml(dateStr, entries) {
+  var html = '';
+  html += '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">';
+  html += '<div style="background:#111;padding:24px;border-radius:12px;">';
+  html += '<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:16px;margin-bottom:20px;">';
+  html += '<h1 style="color:#fff;margin:0 0 8px 0;font-size:1.4rem;">דו"ח ציוד יומי</h1>';
+  html += '<p style="color:#e74c3c;margin:0;font-size:1.1rem;font-weight:600;">' + dateStr + '</p>';
+  html += '</div>';
+
+  if (entries.length === 0) {
+    html += '<div style="background:#2d1a1a;border:1px solid #c0392b;border-radius:10px;padding:20px;text-align:center;">';
+    html += '<p style="color:#e74c3c;font-size:1.1rem;font-weight:600;margin:0;">לא התקבלו דיווחים היום</p>';
+    html += '</div>';
+  } else {
+    html += '<div style="background:#1a2e1a;border:1px solid #3a7a3a;border-radius:10px;padding:12px;text-align:center;margin-bottom:16px;">';
+    html += '<p style="color:#6fcf6f;font-size:1rem;font-weight:600;margin:0;">סה"כ דיווחו: ' + entries.length + ' לוחמים</p>';
+    html += '</div>';
+
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
+    html += '<tr style="background:#c0392b;">';
+    html += '<th style="padding:10px;color:#fff;text-align:right;">שם</th>';
+    html += '<th style="padding:10px;color:#fff;text-align:right;">שעה</th>';
+    html += '<th style="padding:10px;color:#fff;text-align:right;">ברשותו</th>';
+    html += '<th style="padding:10px;color:#fff;text-align:right;">חסר</th>';
+    html += '</tr>';
+
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      var bg = i % 2 === 0 ? '#1a1a1a' : '#222';
+      html += '<tr style="background:' + bg + ';">';
+      html += '<td style="padding:10px;color:#fff;font-weight:600;">' + e.name + '</td>';
+      html += '<td style="padding:10px;color:#aaa;">' + e.time + '</td>';
+      html += '<td style="padding:10px;color:#6fcf6f;">' + (e.checkedItems.length > 0 ? e.checkedItems.join(', ') : '-') + '</td>';
+      html += '<td style="padding:10px;color:#e74c3c;">' + (e.uncheckedItems.length > 0 ? e.uncheckedItems.join(', ') : '-') + '</td>';
+      html += '</tr>';
+    }
+    html += '</table>';
+  }
+
+  html += '<div style="margin-top:20px;padding-top:12px;border-top:1px solid #333;text-align:center;">';
+  html += '<p style="color:#666;font-size:0.8rem;margin:0;">נשלח אוטומטית ב-17:00 | בדיקת ציוד יומית - מילואים</p>';
+  html += '</div>';
+  html += '</div></div>';
+  return html;
 }
 
 function createDailyTrigger() {
@@ -91,6 +117,6 @@ function createDailyTrigger() {
   ScriptApp.newTrigger('sendDailyReport')
     .timeBased()
     .everyDays(1)
-    .atHour(20)
+    .atHour(17)
     .create();
 }
