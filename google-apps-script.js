@@ -1,9 +1,11 @@
-// ==== DAILY EQUIPMENT CHECK - EMAIL REPORTS ====
+// ==== DAILY EQUIPMENT CHECK - FULL FIXED VERSION v3 ====
 // Deploy as Web App: Execute as Me, Anyone can access
 // After deploy: run createAllTriggers() once
 
-var DAILY_EMAILS = ['roee.lahav@philips.com', 'kpobigitel@gmail.com'];
+var DAILY_EMAILS = ['roee.lahav@philips.com', 'kobigitel@gmail.com'];
 var WEEKLY_EMAIL = 'roee.lahav@philips.com';
+
+// ===== WEB APP ENDPOINTS =====
 
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
@@ -11,18 +13,27 @@ function doPost(e) {
   var stored = PropertiesService.getScriptProperties().getProperty(today);
   var entries = stored ? JSON.parse(stored) : [];
   entries.push({
-    name: data.name,
+    name: data.name || '',
     weaponNumber: data.weaponNumber || '',
-    time: data.time,
-    checkedItems: data.checkedItems,
-    uncheckedItems: data.uncheckedItems
+    date: today,
+    time: data.time || '',
+    checkedItems: data.checkedItems || [],
+    uncheckedItems: data.uncheckedItems || []
   });
   PropertiesService.getScriptProperties().setProperty(today, JSON.stringify(entries));
   return ContentService.createTextOutput(JSON.stringify({status: 'ok'}))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ===== DAILY REPORT (17:00 every day) =====
+function doGet(e) {
+  var dateKey = (e && e.parameter && e.parameter.date) ? e.parameter.date : formatDateKey(new Date());
+  var stored = PropertiesService.getScriptProperties().getProperty(dateKey);
+  var entries = stored ? JSON.parse(stored) : [];
+  return ContentService.createTextOutput(JSON.stringify(entries, null, 2))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ===== DAILY REPORT EMAIL (17:00 every day) =====
 function sendDailyReport() {
   var now = new Date();
   var today = formatDateKey(now);
@@ -46,9 +57,9 @@ function sendDailyReport() {
 function sendWeeklyReport() {
   var now = new Date();
   var endOfWeek = new Date(now);
-  endOfWeek.setDate(now.getDate() - 1); // Saturday
+  endOfWeek.setDate(now.getDate() - 1);
   var startOfWeek = new Date(endOfWeek);
-  startOfWeek.setDate(endOfWeek.getDate() - 6); // Previous Sunday
+  startOfWeek.setDate(endOfWeek.getDate() - 6);
 
   var allEntries = [];
   var daysSummary = [];
@@ -59,7 +70,7 @@ function sendWeeklyReport() {
     var entries = stored ? JSON.parse(stored) : [];
     daysSummary.push({ date: dateKey, entries: entries });
     for (var i = 0; i < entries.length; i++) {
-      allEntries.push({ date: dateKey, name: entries[i].name, time: entries[i].time, checkedItems: entries[i].checkedItems, uncheckedItems: entries[i].uncheckedItems });
+      allEntries.push({ date: dateKey, name: entries[i].name, weaponNumber: entries[i].weaponNumber || '', time: entries[i].time, checkedItems: entries[i].checkedItems, uncheckedItems: entries[i].uncheckedItems });
     }
   }
 
@@ -76,13 +87,13 @@ function sendWeeklyReport() {
   });
 }
 
-// ===== HTML BUILDERS =====
+// ===== EMAIL HTML BUILDERS =====
 function buildDailyEmailHtml(dateStr, entries) {
-  var html = '';
-  html += '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">';
+  var html = '<!DOCTYPE html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="UTF-8">\n</head>\n<body dir="rtl" style="font-family:Arial,sans-serif;margin:0;padding:0;">\n';
+  html += '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">';
   html += '<div style="background:#111;padding:24px;border-radius:12px;">';
   html += '<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:16px;margin-bottom:20px;">';
-  html += '<h1 style="color:#fff;margin:0 0 8px 0;font-size:1.4rem;">דו"ח ציוד יומי</h1>';
+  html += '<h1 style="color:#fff;margin:0 0 8px 0;font-size:1.4rem;">דו״ח ציוד יומי</h1>';
   html += '<p style="color:#e74c3c;margin:0;font-size:1.1rem;font-weight:600;">' + dateStr + '</p>';
   html += '</div>';
 
@@ -92,7 +103,7 @@ function buildDailyEmailHtml(dateStr, entries) {
     html += '</div>';
   } else {
     html += '<div style="background:#1a2e1a;border:1px solid #3a7a3a;border-radius:10px;padding:12px;text-align:center;margin-bottom:16px;">';
-    html += '<p style="color:#6fcf6f;font-size:1rem;font-weight:600;margin:0;">סה"כ דיווחו: ' + entries.length + ' לוחמים</p>';
+    html += '<p style="color:#6fcf6f;font-size:1rem;font-weight:600;margin:0;">סה״כ דיווחו: ' + entries.length + ' לוחמים</p>';
     html += '</div>';
     html += buildEntriesTable(entries);
   }
@@ -101,24 +112,23 @@ function buildDailyEmailHtml(dateStr, entries) {
   html += '<p style="color:#666;font-size:0.8rem;margin:0;">נשלח אוטומטית ב-17:00 | בדיקת ציוד יומית - מילואים</p>';
   html += '</div>';
   html += '</div></div>';
+  html += '\n</body>\n</html>';
   return html;
 }
 
 function buildWeeklyEmailHtml(startStr, endStr, daysSummary, allEntries) {
-  var html = '';
+  var html = '<!DOCTYPE html>\n<html lang="he" dir="rtl">\n<head>\n<meta charset="UTF-8">\n</head>\n<body dir="rtl" style="font-family:Arial,sans-serif;margin:0;padding:0;">\n';
   html += '<div dir="rtl" style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">';
   html += '<div style="background:#111;padding:24px;border-radius:12px;">';
   html += '<div style="text-align:center;border-bottom:2px solid #c0392b;padding-bottom:16px;margin-bottom:20px;">';
-  html += '<h1 style="color:#fff;margin:0 0 8px 0;font-size:1.4rem;">דו"ח ציוד שבועי</h1>';
+  html += '<h1 style="color:#fff;margin:0 0 8px 0;font-size:1.4rem;">דו״ח ציוד שבועי</h1>';
   html += '<p style="color:#e74c3c;margin:0;font-size:1.1rem;font-weight:600;">' + startStr + ' — ' + endStr + '</p>';
   html += '</div>';
 
-  // Summary box
   html += '<div style="background:#1a2e1a;border:1px solid #3a7a3a;border-radius:10px;padding:12px;text-align:center;margin-bottom:16px;">';
-  html += '<p style="color:#6fcf6f;font-size:1rem;font-weight:600;margin:0;">סה"כ דיווחים השבוע: ' + allEntries.length + '</p>';
+  html += '<p style="color:#6fcf6f;font-size:1rem;font-weight:600;margin:0;">סה״כ דיווחים השבוע: ' + allEntries.length + '</p>';
   html += '</div>';
 
-  // Per-day breakdown
   for (var d = 0; d < daysSummary.length; d++) {
     var day = daysSummary[d];
     html += '<div style="margin-bottom:16px;">';
@@ -135,15 +145,17 @@ function buildWeeklyEmailHtml(startStr, endStr, daysSummary, allEntries) {
   html += '<p style="color:#666;font-size:0.8rem;margin:0;">נשלח אוטומטית כל יום ראשון | בדיקת ציוד יומית - מילואים</p>';
   html += '</div>';
   html += '</div></div>';
+  html += '\n</body>\n</html>';
   return html;
 }
 
 function buildEntriesTable(entries) {
   var html = '';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
+  html += '<table dir="rtl" style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
   html += '<tr style="background:#c0392b;">';
+  html += '<th style="padding:10px;color:#fff;text-align:right;">#</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">שם</th>';
-  html += '<th style="padding:10px;color:#fff;text-align:right;">מסט"ב</th>';
+  html += '<th style="padding:10px;color:#fff;text-align:right;">מסט״ב</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">שעה</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">ברשותו</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">חסר</th>';
@@ -153,11 +165,12 @@ function buildEntriesTable(entries) {
     var e = entries[i];
     var bg = i % 2 === 0 ? '#1a1a1a' : '#222';
     html += '<tr style="background:' + bg + ';">';
+    html += '<td style="padding:10px;color:#aaa;">' + (i + 1) + '</td>';
     html += '<td style="padding:10px;color:#fff;font-weight:600;">' + e.name + '</td>';
-    html += '<td style="padding:10px;color:#f0c040;font-weight:600;">' + (e.weaponNumber || '-') + '</td>';
+    html += '<td style="padding:10px;color:#f0c040;font-weight:700;font-size:1.05rem;">' + (e.weaponNumber || '—') + '</td>';
     html += '<td style="padding:10px;color:#aaa;">' + e.time + '</td>';
-    html += '<td style="padding:10px;color:#6fcf6f;">' + (e.checkedItems.length > 0 ? e.checkedItems.join(', ') : '-') + '</td>';
-    html += '<td style="padding:10px;color:#e74c3c;">' + (e.uncheckedItems.length > 0 ? e.uncheckedItems.join(', ') : '-') + '</td>';
+    html += '<td style="padding:10px;color:#6fcf6f;">' + (e.checkedItems && e.checkedItems.length > 0 ? e.checkedItems.join(', ') : '—') + '</td>';
+    html += '<td style="padding:10px;color:#e74c3c;">' + (e.uncheckedItems && e.uncheckedItems.length > 0 ? e.uncheckedItems.join(', ') : '—') + '</td>';
     html += '</tr>';
   }
   html += '</table>';
@@ -171,20 +184,17 @@ function formatDateKey(d) {
 
 // ===== TRIGGERS =====
 function createAllTriggers() {
-  // Remove old triggers
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
     ScriptApp.deleteTrigger(triggers[i]);
   }
 
-  // Daily at 17:00
   ScriptApp.newTrigger('sendDailyReport')
     .timeBased()
     .everyDays(1)
     .atHour(17)
     .create();
 
-  // Weekly on Sunday at 08:00
   ScriptApp.newTrigger('sendWeeklyReport')
     .timeBased()
     .onWeekDay(ScriptApp.WeekDay.SUNDAY)
@@ -198,40 +208,13 @@ function sendTestEmail() {
   var todayStr = formatDateKey(today);
 
   var testEntries = [
-    { name: 'רועי להב', time: '11:40', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x2', 'קשר 710'], uncheckedItems: [] }
+    { name: 'רועי להב', weaponNumber: '1234567', time: '11:40', checkedItems: ['נשק אישי', 'כוונת השלכה', 'אמרל', 'רימון רסס x2', 'קשר 710'], uncheckedItems: [] }
   ];
 
   var html = buildDailyEmailHtml(todayStr, testEntries);
   MailApp.sendEmail({
     to: DAILY_EMAILS.join(','),
-    subject: '[בדיקה] דו"ח ציוד יומי - ' + todayStr,
-    htmlBody: html
-  });
-}
-
-function sendTestWeeklyEmail() {
-  var now = new Date();
-  var endOfWeek = new Date(now);
-  endOfWeek.setDate(now.getDate() - 1);
-  var startOfWeek = new Date(endOfWeek);
-  startOfWeek.setDate(endOfWeek.getDate() - 6);
-
-  var daysSummary = [];
-  var allEntries = [];
-  for (var d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
-    var dateKey = formatDateKey(d);
-    var stored = PropertiesService.getScriptProperties().getProperty(dateKey);
-    var entries = stored ? JSON.parse(stored) : [];
-    daysSummary.push({ date: dateKey, entries: entries });
-    for (var i = 0; i < entries.length; i++) {
-      allEntries.push(entries[i]);
-    }
-  }
-
-  var html = buildWeeklyEmailHtml(formatDateKey(startOfWeek), formatDateKey(endOfWeek), daysSummary, allEntries);
-  MailApp.sendEmail({
-    to: WEEKLY_EMAIL,
-    subject: '[בדיקה] דו"ח ציוד שבועי - ' + formatDateKey(startOfWeek) + ' עד ' + formatDateKey(endOfWeek),
+    subject: '[בדיקה] דו״ח ציוד יומי - ' + todayStr,
     htmlBody: html
   });
 }
