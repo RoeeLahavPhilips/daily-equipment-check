@@ -12,6 +12,7 @@ function doPost(e) {
   var entries = stored ? JSON.parse(stored) : [];
   entries.push({
     name: data.name,
+    weaponNumber: data.weaponNumber || '',
     time: data.time,
     checkedItems: data.checkedItems,
     uncheckedItems: data.uncheckedItems
@@ -142,6 +143,7 @@ function buildEntriesTable(entries) {
   html += '<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
   html += '<tr style="background:#c0392b;">';
   html += '<th style="padding:10px;color:#fff;text-align:right;">שם</th>';
+  html += '<th style="padding:10px;color:#fff;text-align:right;">מסט"ב</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">שעה</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">ברשותו</th>';
   html += '<th style="padding:10px;color:#fff;text-align:right;">חסר</th>';
@@ -152,6 +154,7 @@ function buildEntriesTable(entries) {
     var bg = i % 2 === 0 ? '#1a1a1a' : '#222';
     html += '<tr style="background:' + bg + ';">';
     html += '<td style="padding:10px;color:#fff;font-weight:600;">' + e.name + '</td>';
+    html += '<td style="padding:10px;color:#f0c040;font-weight:600;">' + (e.weaponNumber || '-') + '</td>';
     html += '<td style="padding:10px;color:#aaa;">' + e.time + '</td>';
     html += '<td style="padding:10px;color:#6fcf6f;">' + (e.checkedItems.length > 0 ? e.checkedItems.join(', ') : '-') + '</td>';
     html += '<td style="padding:10px;color:#e74c3c;">' + (e.uncheckedItems.length > 0 ? e.uncheckedItems.join(', ') : '-') + '</td>';

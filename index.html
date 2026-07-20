@@ -106,7 +106,7 @@
         }
 
         .soldier-section {
-            margin-bottom: 24px;
+            margin-bottom: 12px;
             display: flex;
             gap: 10px;
         }
@@ -135,6 +135,40 @@
 
         .soldier-section input:focus {
             border-color: #e74c3c;
+        }
+
+        .weapon-number-section {
+            margin-bottom: 24px;
+        }
+
+        .weapon-number-section label {
+            display: block;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .weapon-number-section input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            outline: none;
+            text-align: center;
+        }
+
+        .weapon-number-section input:focus {
+            border-color: #e74c3c;
+        }
+
+        .weapon-number-section input.invalid {
+            border-color: #e74c3c;
+            box-shadow: 0 0 6px rgba(231, 76, 60, 0.3);
         }
 
         .checklist {
@@ -365,6 +399,11 @@
             </div>
         </div>
 
+        <div class="weapon-number-section">
+            <label>מספר נשק (מסט"ב)</label>
+            <input type="text" id="weaponNumber" placeholder="הכנס מספר נשק" inputmode="numeric">
+        </div>
+
         <ul class="checklist" id="checklist">
             <li data-item="נשק אישי" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
@@ -382,14 +421,27 @@
                 <div class="checkbox"></div>
                 <span class="item-name">רימון רסס</span>
                 <div class="qty-selector" onclick="event.stopPropagation()" ontouchend="event.stopPropagation()">
-                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty(-1)" ontouchend="event.stopPropagation()">-</button>
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty('grenade',-1)" ontouchend="event.stopPropagation()">-</button>
                     <span class="qty-value" id="grenadeQty">1</span>
-                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty(1)" ontouchend="event.stopPropagation()">+</button>
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty('grenade',1)" ontouchend="event.stopPropagation()">+</button>
                 </div>
             </li>
             <li data-item="קשר 710" onclick="toggleItem(this)">
                 <div class="checkbox"></div>
                 <span class="item-name">קשר 710</span>
+            </li>
+            <li data-item="קסדה טקטית" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">קסדה טקטית</span>
+            </li>
+            <li data-item="לוח קרמי" onclick="toggleItem(this)">
+                <div class="checkbox"></div>
+                <span class="item-name">לוח קרמי</span>
+                <div class="qty-selector" onclick="event.stopPropagation()" ontouchend="event.stopPropagation()">
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty('ceramic',-1)" ontouchend="event.stopPropagation()">-</button>
+                    <span class="qty-value" id="ceramicQty">0</span>
+                    <button type="button" class="qty-btn" onclick="event.stopPropagation();changeQty('ceramic',1)" ontouchend="event.stopPropagation()">+</button>
+                </div>
             </li>
         </ul>
 
@@ -427,13 +479,28 @@
 
         document.getElementById('currentDate').textContent = formatDate();
 
-        function changeQty(delta) {
+        function changeQty(type, delta) {
             if (hasSubmittedToday()) return;
-            var qtyEl = document.getElementById('grenadeQty');
-            var val = parseInt(qtyEl.textContent) + delta;
-            if (val < 1) val = 1;
-            if (val > 4) val = 4;
-            qtyEl.textContent = val;
+            if (type === 'grenade') {
+                var qtyEl = document.getElementById('grenadeQty');
+                var val = parseInt(qtyEl.textContent) + delta;
+                if (val < 1) val = 1;
+                if (val > 4) val = 4;
+                qtyEl.textContent = val;
+            } else if (type === 'ceramic') {
+                var qtyEl = document.getElementById('ceramicQty');
+                var val = parseInt(qtyEl.textContent) + delta;
+                if (val < 0) val = 0;
+                if (val > 4) val = 4;
+                qtyEl.textContent = val;
+                var li = document.querySelector('[data-item="לוח קרמי"]');
+                if (val > 0) {
+                    li.classList.add('checked');
+                } else {
+                    li.classList.remove('checked');
+                }
+                updateStatus();
+            }
         }
 
         function hasSubmittedToday() {
@@ -452,7 +519,18 @@
 
         function toggleItem(li) {
             if (hasSubmittedToday()) return;
-            li.classList.toggle('checked');
+            var item = li.getAttribute('data-item');
+            if (item === 'לוח קרמי') {
+                if (li.classList.contains('checked')) {
+                    li.classList.remove('checked');
+                    document.getElementById('ceramicQty').textContent = '0';
+                } else {
+                    li.classList.add('checked');
+                    document.getElementById('ceramicQty').textContent = '1';
+                }
+            } else {
+                li.classList.toggle('checked');
+            }
             updateStatus();
         }
 
@@ -471,20 +549,50 @@
             }
         }
 
+        function validateForm() {
+            var firstName = document.getElementById('firstName').value.trim();
+            var lastName = document.getElementById('lastName').value.trim();
+            var weaponNumber = document.getElementById('weaponNumber').value.trim();
+            var weaponInput = document.getElementById('weaponNumber');
+            var errors = [];
+
+            if (!firstName || !lastName) {
+                errors.push('יש להזין שם פרטי ושם משפחה');
+            }
+
+            if (!weaponNumber) {
+                errors.push('יש להזין מספר נשק (מסט"ב)');
+                weaponInput.classList.add('invalid');
+            } else if (!/^\d{4,10}$/.test(weaponNumber)) {
+                errors.push('מספר נשק חייב להכיל 4-10 ספרות');
+                weaponInput.classList.add('invalid');
+            } else {
+                weaponInput.classList.remove('invalid');
+            }
+
+            var checked = document.querySelectorAll('.checklist li.checked');
+            if (checked.length === 0) {
+                errors.push('יש לסמן לפחות פריט אחד');
+            }
+
+            return errors;
+        }
+
         function submitCheck() {
             if (hasSubmittedToday()) {
                 alert('כבר שלחת דיווח היום. ניתן לשלוח דיווח אחד ביום בלבד.');
                 return;
             }
 
-            var firstName = document.getElementById('firstName').value.trim();
-            var lastName = document.getElementById('lastName').value.trim();
-
-            if (!firstName || !lastName) {
-                alert('יש להזין שם פרטי ושם משפחה');
+            var errors = validateForm();
+            if (errors.length > 0) {
+                alert(errors.join('\n'));
                 return;
             }
 
+            var firstName = document.getElementById('firstName').value.trim();
+            var lastName = document.getElementById('lastName').value.trim();
+            var weaponNumber = document.getElementById('weaponNumber').value.trim();
             var fullName = firstName + ' ' + lastName;
             var items = document.querySelectorAll('.checklist li');
             var checkedItems = [];
@@ -496,6 +604,9 @@
                     if (itemName === 'רימון רסס') {
                         var qty = document.getElementById('grenadeQty').textContent;
                         checkedItems.push(itemName + ' x' + qty);
+                    } else if (itemName === 'לוח קרמי') {
+                        var qty = document.getElementById('ceramicQty').textContent;
+                        checkedItems.push(itemName + ' x' + qty);
                     } else {
                         checkedItems.push(itemName);
                     }
@@ -506,13 +617,14 @@
 
             var entry = {
                 name: fullName,
+                weaponNumber: weaponNumber,
                 date: getTodayKey(),
                 time: formatTime(),
                 checkedItems: checkedItems,
                 uncheckedItems: uncheckedItems
             };
 
-            // Send to Google Sheets
+            // Send to Google Apps Script
             if (SCRIPT_URL) {
                 fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -531,6 +643,7 @@
             localStorage.setItem('lastSubmitDate', getTodayKey());
 
             var msg = 'הצהרה נשלחה עבור ' + fullName + '\n';
+            msg += 'מסט"ב: ' + weaponNumber + '\n';
             msg += 'ראיתי: ' + (checkedItems.length > 0 ? checkedItems.join(', ') : 'אף פריט');
             if (uncheckedItems.length > 0) {
                 msg += '\nלא ברשותי: ' + uncheckedItems.join(', ');
@@ -554,7 +667,7 @@
             history.slice(0, 10).forEach(function(entry) {
                 html += '<div class="history-entry">';
                 html += '<div class="entry-header">';
-                html += '<span class="entry-name">' + entry.name + '</span>';
+                html += '<span class="entry-name">' + entry.name + (entry.weaponNumber ? ' | מסט"ב: ' + entry.weaponNumber : '') + '</span>';
                 html += '<span class="entry-time">' + entry.time + ' | ' + entry.date + '</span>';
                 html += '</div>';
                 html += '<div class="entry-items">ראה: ' + (entry.checkedItems.length > 0 ? entry.checkedItems.join(', ') : 'אף פריט') + '</div>';
