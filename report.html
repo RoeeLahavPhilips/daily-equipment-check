@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דוח ציוד יומי</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #111; color: #fff; padding: 24px; direction: rtl; }
+        .container { max-width: 960px; margin: 0 auto; }
+        h1 { color: #e74c3c; text-align: center; margin-bottom: 4px; font-size: 1.6rem; }
+        .date-picker { text-align: center; margin: 16px 0; }
+        .date-picker input { padding: 10px 16px; border-radius: 8px; border: 1px solid #c0392b; background: #1a1a1a; color: #fff; font-size: 1rem; cursor: pointer; }
+        .summary { background: #1a2e1a; border: 1px solid #3a7a3a; border-radius: 10px; padding: 12px; text-align: center; margin: 16px 0; color: #6fcf6f; font-weight: 600; font-size: 1.1rem; }
+        .no-data { text-align: center; color: #e74c3c; font-size: 1.2rem; margin: 40px 0; }
+        .loading { text-align: center; color: #aaa; font-size: 1.1rem; margin: 40px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 16px; }
+        th { background: #c0392b; color: #fff; padding: 12px 10px; text-align: right; }
+        td { padding: 10px; border-bottom: 1px solid #333; }
+        tr:nth-child(even) { background: #1a1a1a; }
+        tr:nth-child(odd) { background: #222; }
+        .weapon { color: #f0c040; font-weight: 700; font-size: 1.05rem; }
+        .has { color: #6fcf6f; }
+        .missing { color: #e74c3c; }
+        .export-btn { display: block; margin: 20px auto; padding: 12px 24px; background: #c0392b; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; }
+        .export-btn:hover { background: #a93226; }
+        .error { text-align: center; color: #e74c3c; margin: 40px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>דוח בדיקת ציוד יומי</h1>
+        <div class="date-picker">
+            <input type="date" id="dateInput">
+        </div>
+        <div id="content">
+            <div class="loading">טוען נתונים...</div>
+        </div>
+    </div>
+
+    <script>
+        var API_URL = 'https://script.google.com/macros/s/AKfycbw1V-7in6DoI5QYeP7dijkiezsiYd9n_5H1ywMHmyz3raKZsHvgP8Ut0_ytZYJNoML3/exec';
+
+        function getTodayKey() {
+            var now = new Date();
+            return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+        }
+
+        var dateInput = document.getElementById('dateInput');
+        dateInput.value = getTodayKey();
+        dateInput.addEventListener('change', function() { loadReport(this.value); });
+
+        function loadReport(dateKey) {
+            var content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">טוען נתונים...</div>';
+
+            fetch(API_URL + '?format=json&date=' + dateKey)
+                .then(function(r) { return r.json(); })
+                .then(function(entries) { renderReport(dateKey, entries); })
+                .catch(function(err) {
+                    content.innerHTML = '<div class="error">שגיאה בטעינת הנתונים: ' + err.message + '</div>';
+                });
+        }
+
+        function renderReport(dateKey, entries) {
+            var content = document.getElementById('content');
+
+            if (!entries || entries.length === 0) {
+                content.innerHTML = '<div class="no-data">אין דיווחים לתאריך ' + dateKey + '</div>';
+                return;
+            }
+
+            var html = '';
+            html += '<div class="summary">סה"כ דיווחו: ' + entries.length + ' לוחמים</div>';
+            html += '<table>';
+            html += '<tr><th>#</th><th>שם</th><th>מסט"ב</th><th>שעה</th><th>ברשותו</th><th>חסר</th></tr>';
+
+            for (var i = 0; i < entries.length; i++) {
+                var e = entries[i];
+                html += '<tr>';
+                html += '<td>' + (i + 1) + '</td>';
+                html += '<td style="font-weight:600;">' + e.name + '</td>';
+                html += '<td class="weapon">' + (e.weaponNumber || '—') + '</td>';
+                html += '<td style="color:#aaa;">' + e.time + '</td>';
+                html += '<td class="has">' + (e.checkedItems && e.checkedItems.length > 0 ? e.checkedItems.join(', ') : '—') + '</td>';
+                html += '<td class="missing">' + (e.uncheckedItems && e.uncheckedItems.length > 0 ? e.uncheckedItems.join(', ') : '—') + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            html += '<button class="export-btn" onclick="exportCSV()">ייצוא ל-Excel (CSV)</button>';
+
+            content.innerHTML = html;
+            window._entries = entries;
+            window._dateKey = dateKey;
+        }
+
+        function exportCSV() {
+            var entries = window._entries;
+            var dateKey = window._dateKey;
+            var csv = '﻿';
+            csv += '#,שם,מספר נשק (מסט"ב),שעה,ברשותו,חסר\n';
+            for (var i = 0; i < entries.length; i++) {
+                var e = entries[i];
+                csv += (i+1) + ',"' + (e.name||'') + '","' + (e.weaponNumber||'') + '",' + (e.time||'') + ',"' + (e.checkedItems||[]).join(' | ') + '","' + (e.uncheckedItems||[]).join(' | ') + '"\n';
+            }
+            var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'equipment_report_' + dateKey + '.csv';
+            link.click();
+        }
+
+        loadReport(getTodayKey());
+    </script>
+</body>
+</html>
