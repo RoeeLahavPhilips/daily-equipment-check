@@ -111,6 +111,10 @@
         }
 
         loadReport(getTodayKey());
+
+        setInterval(function() {
+            loadReport(dateInput.value);
+        }, 30000);
     </script>
 </body>
 </html>
